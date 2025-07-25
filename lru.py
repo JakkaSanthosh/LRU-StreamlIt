@@ -1,7 +1,7 @@
 import streamlit as st
 from collections import OrderedDict
 
-# ---------------------- LRU Cache Class ----------------------
+# ---------- LRU Cache Logic ----------
 class LRUCache:
     def __init__(self, capacity):
         self.capacity = capacity
@@ -26,125 +26,121 @@ class LRUCache:
     def display(self):
         return list(self.cache.items())[::-1]  # MRU to LRU
 
-# ---------------------- Page Config ----------------------
-st.set_page_config(page_title="💾 Cool LRU Cache Simulator", layout="centered")
-
-st.markdown("""
+# ---------- Page Configuration ----------
+st.set_page_config(page_title="⚡ LRU Cache Visualizer", layout="wide")
+st.markdown(
+    """
     <style>
+        .block-container {
+            padding-top: 2rem;
+            padding-bottom: 2rem;
+        }
         .cache-box {
-            padding: 12px;
+            padding: 15px;
             border-radius: 12px;
-            background: linear-gradient(135deg, #6a11cb 0%, #2575fc 100%);
+            background: linear-gradient(135deg, #7b2ff7, #f107a3);
             color: white;
             text-align: center;
-            font-size: 18px;
             font-weight: bold;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            box-shadow: 0px 4px 10px rgba(0,0,0,0.2);
         }
-        .stButton>button {
-            font-size: 16px;
-            padding: 0.6em 1.2em;
-            border-radius: 8px;
+        .bar-outer {
+            background-color: #ddd;
+            border-radius: 10px;
+            overflow: hidden;
+            height: 20px;
+            width: 100%;
         }
-        .highlight {
-            background-color: #ffe082;
-            color: black;
-            padding: 8px;
-            border-radius: 8px;
+        .bar-inner {
+            background: linear-gradient(to right, #00c6ff, #0072ff);
+            height: 100%;
+            transition: width 0.3s ease-in-out;
         }
     </style>
-""", unsafe_allow_html=True)
+    """,
+    unsafe_allow_html=True
+)
 
-st.title("🚀 LRU Cache Visual Simulator")
+# ---------- Header & Description ----------
+st.title("📦 LRU Cache Visual Simulator")
 
-# ---------------------- Info Expanders ----------------------
-with st.expander("ℹ️ What is LRU Cache?"):
+with st.expander("ℹ️ About LRU Cache"):
     st.markdown("""
-    **LRU (Least Recently Used)** Cache keeps a limited number of key-value pairs.  
-    When full, it removes the *least recently used* item to make space.
+    - **LRU (Least Recently Used) Cache** evicts the least recently used items first when capacity is exceeded.
+    - Commonly used in memory management, web caching, and databases.
     """)
 
-with st.expander("⚙️ How It Works"):
-    st.markdown("""
-    - Use **Put** to add or update key-value pairs.
-    - Use **Get** to retrieve values (moves them to most-recent).
-    - If full, the **oldest used** item gets removed.
-    """)
-
-# ---------------------- Session State ----------------------
+# ---------- Initialization ----------
 if "cache_initialized" not in st.session_state:
     st.session_state.cache_initialized = False
-if "highlight" not in st.session_state:
-    st.session_state.highlight = None
 
-# ---------------------- Init Cache ----------------------
 if not st.session_state.cache_initialized:
-    with st.form("init_cache"):
-        capacity = st.number_input("🧠 Enter Cache Capacity", min_value=1, step=1)
-        if st.form_submit_button("Initialize"):
+    with st.form("init_form"):
+        capacity = st.number_input("🔧 Set Cache Capacity", min_value=1, step=1, format="%d")
+        if st.form_submit_button("Initialize Cache"):
             st.session_state.cache = LRUCache(capacity)
             st.session_state.capacity = capacity
             st.session_state.cache_initialized = True
-            st.success("✅ Cache Initialized")
 
-# ---------------------- Main UI ----------------------
+# ---------- Main App Logic ----------
 if st.session_state.cache_initialized:
-    st.success(f"🧰 Cache Ready (Capacity = {st.session_state.capacity})")
+    st.success(f"✅ Cache initialized with capacity = {st.session_state.capacity}")
 
     col1, col2 = st.columns(2)
+
+    # PUT operation
     with col1:
-        st.subheader("➕ Insert / Update")
+        st.subheader("➕ Insert or Update")
         with st.form("put_form"):
             put_key = st.number_input("Key", step=1, format="%d")
             put_value = st.number_input("Value", step=1, format="%d")
             if st.form_submit_button("Put"):
                 st.session_state.cache.put(put_key, put_value)
-                st.session_state.highlight = put_key
-                st.success(f"🔐 Stored ({put_key}, {put_value})")
+                st.success(f"Put ({put_key}, {put_value})")
 
+    # GET operation
     with col2:
         st.subheader("🔍 Retrieve")
         with st.form("get_form"):
-            get_key = st.number_input("Get Key", step=1, format="%d", key="get_key_input")
+            get_key = st.number_input("Get Key", step=1, format="%d", key="get_key")
             if st.form_submit_button("Get"):
                 value = st.session_state.cache.get(get_key)
                 if value == -1:
                     st.warning("❌ Key not found.")
                 else:
-                    st.session_state.highlight = get_key
-                    st.info(f"📥 Value = {value}")
+                    st.success(f"Value = {value}")
 
-    # Visual cache usage
-    usage = len(st.session_state.cache.display())
-    capacity = st.session_state.capacity
-    st.subheader("📊 Cache Usage")
-    st.progress(usage / capacity)
+    # ---------- Cache Display ----------
+    st.divider()
+    st.subheader("📊 Cache State (MRU ➝ LRU)")
 
-    st.subheader("📦 Cache Content (MRU ➡️ LRU)")
     items = st.session_state.cache.display()
-
     if items:
+        usage = len(items) / st.session_state.capacity * 100
+        st.markdown(f"**🧠 Usage: {len(items)} / {st.session_state.capacity}**")
+        st.markdown(f"""
+            <div class='bar-outer'><div class='bar-inner' style='width:{usage}%;'></div></div>
+        """, unsafe_allow_html=True)
+        st.write("")  # spacing
+
         cols = st.columns(len(items))
         for idx, (k, v) in enumerate(items):
-            style = "highlight" if k == st.session_state.highlight else "cache-box"
             with cols[idx]:
-                st.markdown(f"<div class='{style}'><div>{k}</div><div>{v}</div></div>", unsafe_allow_html=True)
-        st.markdown("<center>⬅️ Most Recently Used | Least Recently Used ➡️</center>", unsafe_allow_html=True)
+                st.markdown(f"<div class='cache-box'>{k}<br><small>{v}</small></div>", unsafe_allow_html=True)
+        st.markdown("<center>⬅️ MRU | LRU ➡️</center>", unsafe_allow_html=True)
     else:
-        st.info("📭 Cache is empty.")
+        st.info("🌀 Cache is currently empty.")
 
-    # Buttons
-    col3, col4 = st.columns(2)
+    # ---------- Buttons ----------
+    st.divider()
+    col3, col4 = st.columns([1, 1])
     with col3:
+        if st.button("🧹 Clear Data"):
+            st.session_state.cache.clear()
+            st.success("Cache cleared.")
+    with col4:
         if st.button("🔁 Reset Cache"):
-            for key in ["cache_initialized", "cache", "capacity", "highlight"]:
+            for key in ["cache_initialized", "cache", "capacity"]:
                 if key in st.session_state:
                     del st.session_state[key]
             st.rerun()
-
-    with col4:
-        if st.button("🧹 Clear All Data"):
-            st.session_state.cache.clear()
-            st.session_state.highlight = None
-            st.success("🗑️ Cache Cleared")
-
